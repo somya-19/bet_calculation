@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎰 Roulette Strategy Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --felt:       #1a6b3a;
+  --felt-dark:  #0e4224;
+  --gold:       #c9a227;
+  --gold-lo:    rgba(201,162,39,0.15);
+  --gold-glow:  rgba(201,162,39,0.7);
+  --red-num:    #c0182b;
+  --bg:         #09101f;
+  --border:     rgba(255,255,255,0.28);
+
+  /* zone/sector colours */
+  --z1:  #3b82f6;  --z1-lo: rgba(59,130,246,0.18);  --z1-glow: rgba(59,130,246,0.5);
+  --z2:  #f97316;  --z2-lo: rgba(249,115,22,0.18);   --z2-glow: rgba(249,115,22,0.5);
+  --tier:#a855f7;  --tier-lo:rgba(168,85,247,0.18);  --tier-glow:rgba(168,85,247,0.5);
+  --orp: #eab308;  --orp-lo: rgba(234,179,8,0.18);   --orp-glow: rgba(234,179,8,0.5);
+  --voi: #22d3ee;  --voi-lo: rgba(34,211,238,0.18);  --voi-glow: rgba(34,211,238,0.5);
+}
+
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 50px;
+  font-family: 'Barlow Condensed', sans-serif;
+  background-image:
+    radial-gradient(ellipse at 20% 40%, rgba(20,60,30,0.3) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 60%, rgba(15,30,70,0.3) 0%, transparent 55%);
+}
+
+/* ── HEADER ── */
+.header { text-align:center; margin-bottom:26px; }
+.header h1 {
+  font-family:'Cinzel',serif;
+  font-size:clamp(1.8rem,4vw,2.6rem);
+  color:var(--gold);
+  letter-spacing:7px;
+  text-shadow:0 0 50px var(--gold-glow),0 2px 6px rgba(0,0,0,0.9);
+  margin-bottom:5px;
+}
+.header p { color:rgba(255,255,255,0.32); font-size:0.7rem; letter-spacing:5px; text-transform:uppercase; }
+
+/* ── MAIN FILTER AREA ── */
+.filter-area {
+  width:100%; max-width:800px;
+  display:flex; flex-direction:column; gap:10px;
+  margin-bottom:22px;
+}
+
+/* section card */
+.filter-card {
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.09);
+  border-radius:12px;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.card-label {
+  font-size:0.65rem;
+  font-weight:700;
+  letter-spacing:3.5px;
+  text-transform:uppercase;
+  min-width:68px;
+  flex-shrink:0;
+}
+
+.sep { width:1px; height:32px; background:rgba(255,255,255,0.1); flex-shrink:0; }
+
+/* ── FILTER BUTTONS ── */
+.fbt {
+  padding:10px 22px;
+  border-radius:8px;
+  border:2px solid;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:0.9rem; font-weight:700;
+  letter-spacing:2px; text-transform:uppercase;
+  cursor:pointer;
+  transition:all .2s ease;
+  user-select:none;
+  position:relative;
+  overflow:hidden;
+}
+.fbt:hover { transform:translateY(-2px); filter:brightness(1.2); }
+.fbt:active { transform:translateY(0); }
+
+/* ── ZONE 1 ── */
+.fbt.z1 { border-color:var(--z1); color:var(--z1); background:var(--z1-lo); }
+.fbt.z1.on { background:var(--z1); color:#fff; box-shadow:0 0 22px var(--z1-glow),0 4px 12px rgba(0,0,0,0.4); }
+
+/* ── ZONE 2 ── */
+.fbt.z2 { border-color:var(--z2); color:var(--z2); background:var(--z2-lo); }
+.fbt.z2.on { background:var(--z2); color:#fff; box-shadow:0 0 22px var(--z2-glow),0 4px 12px rgba(0,0,0,0.4); }
+
+/* ── TIERS ── */
+.fbt.tier { border-color:var(--tier); color:var(--tier); background:var(--tier-lo); }
+.fbt.tier.on { background:var(--tier); color:#fff; box-shadow:0 0 22px var(--tier-glow),0 4px 12px rgba(0,0,0,0.4); }
+
+/* ── ORPHELINS ── */
+.fbt.orp { border-color:var(--orp); color:var(--orp); background:var(--orp-lo); }
+.fbt.orp.on { background:var(--orp); color:#1a1000; box-shadow:0 0 22px var(--orp-glow),0 4px 12px rgba(0,0,0,0.4); }
+
+/* ── VOISINS ── */
+.fbt.voi { border-color:var(--voi); color:var(--voi); background:var(--voi-lo); }
+.fbt.voi.on { background:var(--voi); color:#001a1e; box-shadow:0 0 22px var(--voi-glow),0 4px 12px rgba(0,0,0,0.4); }
+
+/* ── ODD/EVEN/RED/BLACK/RANGE ── */
+.fbt.odd  { border-color:rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.05); }
+.fbt.even { border-color:rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.05); }
+.fbt.odd.on,.fbt.even.on { background:var(--gold); border-color:var(--gold); color:#1a1000; box-shadow:0 0 20px var(--gold-glow); }
+
+.fbt.red  { border-color:rgba(192,24,43,0.6); color:rgba(255,130,140,0.9); background:rgba(192,24,43,0.09); }
+.fbt.blk  { border-color:rgba(180,180,220,0.3); color:rgba(210,210,230,0.85); background:rgba(20,20,40,0.35); }
+.fbt.red.on  { background:var(--red-num); border-color:var(--red-num); color:#fff; box-shadow:0 0 20px rgba(192,24,43,0.6); }
+.fbt.blk.on  { background:#252540; border-color:#8888bb; color:#ddddf0; box-shadow:0 0 20px rgba(80,80,140,0.55); }
+
+.fbt.rng { border-color:rgba(255,255,255,0.25); color:rgba(255,255,255,0.75); background:rgba(255,255,255,0.04); }
+.fbt.rng.on { background:var(--gold-lo); border-color:var(--gold); color:var(--gold); box-shadow:0 0 18px var(--gold-lo); }
+
+/* Clear button */
+.fbt.clr {
+  border-color:rgba(255,80,80,0.35); color:rgba(255,110,110,0.7);
+  background:rgba(255,80,80,0.04); margin-left:auto;
+}
+.fbt.clr:hover { background:rgba(255,80,80,0.15); border-color:rgba(255,80,80,0.9); color:#ff7070; }
+
+/* card labels by type */
+.card-label.zones   { color:#60a5fa; }
+.card-label.sectors { color:#c084fc; }
+.card-label.parity  { color:var(--gold); }
+.card-label.colour  { color:#f87171; }
+.card-label.range   { color:#86efac; }
+
+/* ── ACTIVE TAG STRIP ── */
+.tags-strip {
+  display:flex; align-items:center; justify-content:center;
+  gap:8px; flex-wrap:wrap; min-height:36px; margin-bottom:14px;
+}
+.atag {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 14px 5px 12px; border-radius:20px;
+  font-size:0.7rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  animation:tagIn .2s ease;
+}
+@keyframes tagIn { from{opacity:0;transform:scale(.8)} to{opacity:1;transform:scale(1)} }
+.atag .ax { cursor:pointer; opacity:.55; transition:opacity .15s,color .15s; font-size:.85rem; }
+.atag .ax:hover { opacity:1; color:#ff6060; }
+.isect { color:rgba(255,255,255,.2); font-size:.9rem; }
+.no-tag { color:rgba(255,255,255,.2); font-size:.75rem; letter-spacing:3px; font-style:italic; }
+
+/* ── COUNTER ── */
+.counter {
+  text-align:center; margin-bottom:18px;
+  font-family:'Cinzel',serif;
+}
+.counter .n { font-size:2rem; color:var(--gold); text-shadow:0 0 25px var(--gold-glow); }
+.counter .t { font-size:.7rem; color:rgba(255,255,255,.35); letter-spacing:4px; text-transform:uppercase; margin-left:8px; }
+
+/* ── BOARD ── */
+.board-scroll { overflow-x:auto; width:100%; display:flex; justify-content:center; }
+.board-wrap {
+  background:linear-gradient(150deg,var(--felt-dark) 0%,var(--felt) 50%,var(--felt-dark) 100%);
+  border:2.5px solid var(--gold); border-radius:14px; padding:14px;
+  box-shadow:0 0 70px rgba(0,0,0,.85),0 0 130px rgba(0,0,0,.45),inset 0 0 50px rgba(0,0,0,.18);
+}
+.board-grid {
+  display:grid;
+  grid-template-columns:56px repeat(12,44px) 40px;
+  grid-template-rows:34px 54px 54px 54px 34px;
+  gap:3px;
+}
+
+/* board label cell */
+.bl {
+  border:1.5px solid var(--border); border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:.7rem; font-weight:700;
+  color:white; letter-spacing:1.5px; text-transform:uppercase; text-align:center;
+  background:rgba(0,0,0,.22); user-select:none;
+}
+
+/* right-side col bet */
+.cb {
+  border:1.5px solid var(--border); border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.55rem; font-weight:700; color:rgba(255,255,255,.7);
+  writing-mode:vertical-rl; letter-spacing:2.5px; text-transform:uppercase;
+  background:rgba(0,0,0,.22);
+}
+
+/* zero */
+.z0 {
+  grid-column:1; grid-row:2/5;
+  background:linear-gradient(135deg,#1d7a42,#135a2e);
+  border:2px solid rgba(255,255,255,.35); border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:1.9rem; font-weight:900; color:white;
+  position:relative; overflow:hidden;
+  transition:box-shadow .3s,border-color .3s,opacity .3s,filter .3s,transform .3s;
+}
+.z0::before { content:''; position:absolute; inset:5px; border:1px solid rgba(255,255,255,.18); border-radius:4px; }
+
+/* number cell */
+.nc {
+  border:1.5px solid rgba(255,255,255,.25); border-radius:5px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:1rem; font-weight:700; color:white;
+  position:relative; user-select:none;
+  transition:box-shadow .25s,border-color .25s,opacity .25s,filter .25s,transform .25s;
+}
+.nc.rn { background:linear-gradient(145deg,#d01e30,#a51223); }
+.nc.bn { background:linear-gradient(145deg,#1c1c2e,#0e0e1c); }
+
+/* HIGHLIGHTED — colour depends on which filter caused it */
+.nc.hl,.z0.hl { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,1),0 0 30px rgba(255,215,0,.55); transform:scale(1.08); z-index:4; }
+.nc.hl-z1,.z0.hl-z1 { border-color:var(--z1)!important; box-shadow:0 0 14px var(--z1-glow),0 0 30px rgba(59,130,246,.4)!important; }
+.nc.hl-z2,.z0.hl-z2 { border-color:var(--z2)!important; box-shadow:0 0 14px var(--z2-glow),0 0 30px rgba(249,115,22,.4)!important; }
+.nc.hl-tier,.z0.hl-tier { border-color:var(--tier)!important; box-shadow:0 0 14px var(--tier-glow),0 0 30px rgba(168,85,247,.4)!important; }
+.nc.hl-orp,.z0.hl-orp { border-color:var(--orp)!important; box-shadow:0 0 14px var(--orp-glow),0 0 30px rgba(234,179,8,.4)!important; }
+.nc.hl-voi,.z0.hl-voi { border-color:var(--voi)!important; box-shadow:0 0 14px var(--voi-glow),0 0 30px rgba(34,211,238,.4)!important; }
+
+.nc.dm,.z0.dm { opacity:.08; filter:grayscale(1) blur(.5px); transform:scale(.9); box-shadow:none!important; border-color:rgba(255,255,255,.1)!important; }
+
+/* diamond */
+.dia { width:17px; height:17px; transform:rotate(45deg); border-radius:2px; border:1px solid rgba(255,255,255,.35); }
+.dia.r { background:var(--red-num); }
+.dia.b { background:#0a0a18; }
+.sp { background:transparent; pointer-events:none; }
+
+.scroll-tip { font-size:.62rem; color:rgba(255,255,255,.2); text-align:center; margin-top:8px; letter-spacing:2px; }
+
+/* ── CHIPS ── */
+.chips-panel { margin-top:22px; display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:780px; }
+.chips-title { color:rgba(255,255,255,.3); font-size:.67rem; letter-spacing:4px; text-transform:uppercase; }
+.chips-row { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; min-height:38px; }
+.chip {
+  width:38px; height:38px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Cinzel',serif; font-size:.76rem; font-weight:700; color:white;
+  border:2px solid rgba(255,215,0,.9);
+  box-shadow:0 0 10px rgba(255,215,0,.6),0 0 22px rgba(255,215,0,.3);
+  animation:chipIn .18s ease;
+}
+@keyframes chipIn { from{opacity:0;transform:scale(.55)} to{opacity:1;transform:scale(1)} }
+.chip.rc { background:linear-gradient(145deg,#d01e30,#a51223); }
+.chip.bc { background:linear-gradient(145deg,#1c1c2e,#0e0e1c); }
+.chip.gc { background:linear-gradient(145deg,#1d7a42,#135a2e); }
+.no-match { color:rgba(255,100,100,.5); font-size:.8rem; letter-spacing:3px; font-style:italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎰 Roulette</h1>
+  <p>Strategy Filter Board</p>
+</div>
+
+<!-- ══ FILTER AREA ═══════════════════════════════════════════ -->
+<div class="filter-area">
+
+  <!-- ZONES -->
+  <div class="filter-card">
+    <span class="card-label zones">🟦 Zones</span>
+    <div class="sep"></div>
+    <button class="fbt z1" data-key="zone1">Zone 1</button>
+    <button class="fbt z2" data-key="zone2">Zone 2</button>
+    <div style="margin-left:10px;color:rgba(255,255,255,.3);font-size:.68rem;letter-spacing:1.5px;line-height:1.5">
+      <div>Zone 1 · Wheel left half (Tier + Orphelins arc)</div>
+      <div>Zone 2 · Wheel right half, 9 → 17 (Voisins arc)</div>
+    </div>
+  </div>
+
+  <!-- SECTORS -->
+  <div class="filter-card">
+    <span class="card-label sectors">🎡 Sectors</span>
+    <div class="sep"></div>
+    <button class="fbt tier" data-key="tier">Tiers du Cylindre</button>
+    <button class="fbt orp"  data-key="orphelins">Orphelins</button>
+    <button class="fbt voi"  data-key="voisins">Voisins du Zéro</button>
+  </div>
+
+  <!-- ODD / EVEN -->
+  <div class="filter-card">
+    <span class="card-label parity">🔢 Parity</span>
+    <div class="sep"></div>
+    <button class="fbt odd" data-key="odd">Odd</button>
+    <button class="fbt even" data-key="even">Even</button>
+
+    <span class="card-label colour" style="margin-left:24px">🔴 Colour</span>
+    <div class="sep"></div>
+    <button class="fbt red" data-key="red">● Red</button>
+    <button class="fbt blk" data-key="black">● Black</button>
+
+    <span class="card-label range" style="margin-left:24px">📏 Range</span>
+    <div class="sep"></div>
+    <button class="fbt rng" data-key="low">1–18</button>
+    <button class="fbt rng" data-key="high">19–36</button>
+
+    <button class="fbt clr" onclick="clearAll()">✕ Clear All</button>
+  </div>
+
+</div>
+
+<!-- ACTIVE TAGS -->
+<div class="tags-strip" id="tags-strip">
+  <span class="no-tag">No filters active — all numbers are highlighted</span>
+</div>
+
+<!-- COUNTER -->
+<div class="counter">
+  <span class="n" id="cnt">37</span><span class="t">numbers match</span>
+</div>
+
+<!-- BOARD -->
+<div class="board-scroll">
+  <div class="board-wrap">
+    <div class="board-grid" id="board"></div>
+  </div>
+</div>
+<p class="scroll-tip">← scroll sideways on small screens</p>
+
+<!-- CHIPS -->
+<div class="chips-panel">
+  <div class="chips-title">Matching Numbers</div>
+  <div class="chips-row" id="chips"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   FILTER DEFINITIONS
+   ═══════════════════════════════════════════ */
+const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+
+// Zone 1: left half of wheel (Tier + Orphelins arc)
+// Wheel sequence (clockwise): 0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26
+// Zone 1 = 34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31
+// Zone 2 = 9,22,18,29,7,28,12,35,3,26,0,32,15,19,4,21,2,25,17
+
+const DEFS = {
+  zone1: {
+    label: 'Zone 1',
+    color: 'z1',
+    hlClass: 'hl-z1',
+    nums: new Set([34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31])
+  },
+  zone2: {
+    label: 'Zone 2',
+    color: 'z2',
+    hlClass: 'hl-z2',
+    nums: new Set([9,22,18,29,7,28,12,35,3,26,0,32,15,19,4,21,2,25,17])
+  },
+  tier: {
+    label: 'Tiers du Cylindre',
+    color: 'tier',
+    hlClass: 'hl-tier',
+    nums: new Set([5,8,10,11,13,16,23,24,27,30,33,36])
+  },
+  orphelins: {
+    label: 'Orphelins',
+    color: 'orp',
+    hlClass: 'hl-orp',
+    nums: new Set([1,6,9,14,17,20,31,34])
+  },
+  voisins: {
+    label: 'Voisins du Zéro',
+    color: 'voi',
+    hlClass: 'hl-voi',
+    nums: new Set([0,2,3,4,7,12,15,18,19,21,22,25,26,28,29,32,35])
+  },
+  odd:   { label:'Odd',      color:'odd',  hlClass:'hl', nums: new Set([1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35]) },
+  even:  { label:'Even',     color:'even', hlClass:'hl', nums: new Set([2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]) },
+  red:   { label:'Red',      color:'red',  hlClass:'hl', nums: new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]) },
+  black: { label:'Black',    color:'blk',  hlClass:'hl', nums: new Set([2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35]) },
+  low:   { label:'1 to 18',  color:'rng',  hlClass:'hl', nums: new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]) },
+  high:  { label:'19 to 36', color:'rng',  hlClass:'hl', nums: new Set([19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36]) },
+};
+
+// Priority of highlight colour (first active filter wins for colour)
+const COLOR_PRIORITY = ['zone1','zone2','tier','orphelins','voisins'];
+
+let active = new Set();
+
+/* ═══════════════════════════════════════════
+   BUILD BOARD
+   ═══════════════════════════════════════════ */
+const R1=[3,6,9,12,15,18,21,24,27,30,33,36];
+const R2=[2,5,8,11,14,17,20,23,26,29,32,35];
+const R3=[1,4,7,10,13,16,19,22,25,28,31,34];
+
+function mk(tag,cls,extra={}){
+  const e=document.createElement(tag);
+  e.className=cls;
+  if(extra.id)   e.id=extra.id;
+  if(extra.text) e.textContent=extra.text;
+  if(extra.col)  e.style.gridColumn=extra.col;
+  if(extra.row)  e.style.gridRow=extra.row;
+  if(extra.data) Object.entries(extra.data).forEach(([k,v])=>e.dataset[k]=v);
+  return e;
+}
+
+function buildBoard(){
+  const g=document.getElementById('board');
+
+  // Row 1 – dozen labels (non-interactive, just labels)
+  g.appendChild(mk('div','sp',{col:'1',row:'1'}));
+  [{t:'1st 12',c:'2/6'},{t:'2nd 12',c:'6/10'},{t:'3rd 12',c:'10/14'}].forEach(d=>{
+    g.appendChild(mk('div','bl',{col:d.c,row:'1',text:d.t}));
+  });
+  g.appendChild(mk('div','sp',{col:'14',row:'1'}));
+
+  // Zero
+  g.appendChild(mk('div','z0',{id:'c0',col:'1',row:'2/5',text:'0'}));
+
+  // Numbers
+  [{nums:R1,row:'2'},{nums:R2,row:'3'},{nums:R3,row:'4'}].forEach(({nums,row},ri)=>{
+    nums.forEach((n,ci)=>{
+      const cl='nc '+(RED.has(n)?'rn':'bn');
+      g.appendChild(mk('div',cl,{id:`c${n}`,col:String(ci+2),row,text:String(n)}));
+    });
+    g.appendChild(mk('div','cb',{col:'14',row,text:'2 to 1'}));
+  });
+
+  // Row 5 – bottom labels
+  g.appendChild(mk('div','sp',{col:'1',row:'5'}));
+  [{t:'1 to 18',c:'2/4'},{t:'Even',c:'4/6'},{t:'',c:'6/8',dia:'r'},{t:'',c:'8/10',dia:'b'},{t:'Odd',c:'10/12'},{t:'19 to 36',c:'12/14'}]
+    .forEach(b=>{
+      const div=mk('div','bl',{col:b.c,row:'5'});
+      if(b.dia){ const d=document.createElement('div'); d.className=`dia ${b.dia}`; div.appendChild(d); }
+      else div.textContent=b.t;
+      g.appendChild(div);
+    });
+  g.appendChild(mk('div','sp',{col:'14',row:'5'}));
+}
+
+/* ═══════════════════════════════════════════
+   TOGGLE LOGIC
+   ═══════════════════════════════════════════ */
+function toggle(key){
+  active.has(key) ? active.delete(key) : active.add(key);
+  render();
+}
+function clearAll(){ active.clear(); render(); }
+
+function passesAll(n){
+  if(!active.size) return true;
+  for(const k of active) if(!DEFS[k].nums.has(n)) return false;
+  return true;
+}
+
+// Which colour-priority filter (zone/sector) is active for a given number?
+function hlClass(n){
+  for(const k of COLOR_PRIORITY){
+    if(active.has(k) && DEFS[k].nums.has(n)) return DEFS[k].hlClass;
+  }
+  return 'hl';
+}
+
+/* ═══════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════ */
+function render(){
+  const all=[0,...Array.from({length:36},(_,i)=>i+1)];
+  const matching=[];
+
+  all.forEach(n=>{
+    const el=document.getElementById(`c${n}`);
+    if(!el) return;
+    const hl=passesAll(n);
+    // Remove all hl classes
+    el.classList.remove('hl','hl-z1','hl-z2','hl-tier','hl-orp','hl-voi','dm');
+    if(hl){
+      matching.push(n);
+      el.classList.add(active.size ? hlClass(n) : 'hl');
+    } else {
+      el.classList.add('dm');
+    }
+  });
+
+  // Sync filter buttons
+  document.querySelectorAll('.fbt[data-key]').forEach(b=>{
+    b.classList.toggle('on', active.has(b.dataset.key));
+  });
+
+  // Count
+  document.getElementById('cnt').textContent=matching.length;
+
+  // Tags
+  const strip=document.getElementById('tags-strip');
+  if(!active.size){
+    strip.innerHTML='<span class="no-tag">No filters active — all numbers are highlighted</span>';
+  } else {
+    strip.innerHTML=[...active].map((k,i)=>{
+      const d=DEFS[k];
+      const colors={
+        z1:'border:1px solid var(--z1);color:var(--z1);background:var(--z1-lo)',
+        z2:'border:1px solid var(--z2);color:var(--z2);background:var(--z2-lo)',
+        tier:'border:1px solid var(--tier);color:var(--tier);background:var(--tier-lo)',
+        orp:'border:1px solid var(--orp);color:var(--orp);background:var(--orp-lo)',
+        voi:'border:1px solid var(--voi);color:var(--voi);background:var(--voi-lo)',
+        odd:'border:1px solid var(--gold);color:var(--gold);background:var(--gold-lo)',
+        even:'border:1px solid var(--gold);color:var(--gold);background:var(--gold-lo)',
+        red:'border:1px solid var(--red-num);color:#ff8890;background:rgba(192,24,43,.15)',
+        blk:'border:1px solid #8888bb;color:#c0c0dd;background:rgba(60,60,100,.2)',
+        rng:'border:1px solid var(--gold);color:var(--gold);background:var(--gold-lo)',
+      };
+      const s=colors[d.color]||colors.rng;
+      return (i>0?'<span class="isect">∩</span>':'')+
+        `<span class="atag" style="${s}">${d.label}<span class="ax" onclick="toggle('${k}')">✕</span></span>`;
+    }).join('');
+  }
+
+  // Chips
+  const cr=document.getElementById('chips');
+  if(!matching.length){
+    cr.innerHTML='<span class="no-match">No numbers match — remove a filter</span>';
+  } else {
+    cr.innerHTML=matching.map(n=>`<div class="chip ${n===0?'gc':RED.has(n)?'rc':'bc'}">${n}</div>`).join('');
+  }
+}
+
+/* ═══════════════════════════════════════════
+   WIRE UP BUTTONS
+   ═══════════════════════════════════════════ */
+document.querySelectorAll('.fbt[data-key]').forEach(b=>{
+  b.addEventListener('click',()=>toggle(b.dataset.key));
+});
+
+buildBoard();
+render();
+</script>
+</body>
+</html>
